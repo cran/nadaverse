@@ -1,0 +1,14 @@
+citHeader("To cite nadaverse in publications, please use:")
+
+year <- sub("-.*", "", meta$Date)
+note <- sprintf("R package version %s", meta$Version)
+bibentry(bibtype = "Manual",
+         key = "nadaverse",
+         title = "nadaverse: Browse Microdata Catalogs Using NADA REST API in R",
+         author = person("Gutama Girja", "Urago"),
+         year = year,
+         note = note,
+         url = "https://github.com/guturago/nadaverse/",
+         textVersion = paste0("Urago, G. G. (", year, "). nadaverse: Browse Microdata Catalogs Using NADA REST API in R ", note)
+         )
+
