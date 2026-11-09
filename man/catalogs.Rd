@@ -22,10 +22,12 @@ latest_entries(catalog, limit = NULL)
 metadata(catalog, id)
 }
 \arguments{
-\item{show}{Logical. If \code{TRUE}, prints supported catalogs to console}
+\item{show}{Logical. If \code{TRUE} (default), prints the supported
+catalogs to the console. The catalog table is returned invisibly either
+way.}
 
 \item{catalog}{A required character string specifying the name of the data
-catalog (e.g., \code{"fao"}, \code{"ilo"}, \code{"wb"}) from which to retrieve metadata.}
+catalog (e.g., \code{"fao"}, \code{"wb"}) from which to retrieve metadata.}
 
 \item{limit}{A positive integer number, applicable only to \code{latest_entries},
 indicating the \strong{maximum number of results} (data entries) to return. If
@@ -38,23 +40,27 @@ returned in the search results from \code{\link[=search_catalog]{search_catalog(
 \code{\link[=latest_entries]{latest_entries()}} or \code{\link[=data_files]{data_files()}}.}
 }
 \value{
-A \strong{data frame} containing the requested metadata, except for \code{metadata()},
-which returns a \code{list}. The structure of the returned object varies by function:
 \itemize{
-\item \code{access_codes}: Returns a data frame with columns related to
-data resource identifiers (e.g., \code{code}, \code{description}).
-\item \code{collections}: Returns a data frame detailing data groupings
-(e.g., \code{collection_id}, \code{name}).
-\item \code{country_codes}: Returns a data frame of standard country
-identifiers (e.g., \code{iso3c}, \code{country_name}).
-\item \code{latest_entries}: Returns a data frame of the \strong{most recently}
-added datasets or entries, with columns reflecting their general
-metadata (e.g., \code{title}, \code{date_added}).
-\item \code{metadata}: Returns a \strong{list} of the study metadata including detailed
-description, abstract, sampling methodology, and other study-specific details.
+\item \code{catalogs}: Invisibly, a data frame with one row per supported
+catalog and the columns \code{catalog}, \code{name}, \code{home} and
+\code{api}.
+\item \code{access_codes}: A data frame of the data access types, with
+columns such as \code{id}, \code{type} and \code{title}.
+\item \code{collections}: A data frame of collections, with columns such as
+\code{id}, \code{repositoryid} and \code{title}.
+\item \code{country_codes}: A data frame of country codes, with columns such
+as \code{countryid}, \code{name} and \code{iso}.
+\item \code{latest_entries}: A data frame of the most recently added
+studies, with columns such as \code{id}, \code{idno}, \code{title},
+\code{nation}, \code{created}, \code{changed} and \code{url}.
+\item \code{metadata}: A \code{list} with the study description. Its main
+parts are \code{doc_desc} (about the documentation) and \code{study_desc}
+(about the study itself).
 }
-If the API call fails or no data is found, the function may return an
-empty data frame or raise an error.
+Column names come from each catalog's API, so they can differ slightly
+between catalogs. If a catalog returns no records, a warning is issued
+and the result is empty. Network failures, HTTP errors and non-JSON
+replies raise an error.
 }
 \description{
 A suite of small \strong{helper functions} designed to interact with and retrieve
@@ -64,10 +70,20 @@ available \strong{data access codes}, \strong{collections}, \strong{country code
 \strong{latest entries} from specified sources.
 }
 \details{
-All functions require a valid \code{catalog} name. The functions
-communicate with a backend API (implied by \code{base_url} and \code{get_response})
-to fetch the requested data in a standardized format. The validity of the
-\code{catalog} is checked internally using \code{assert_catalog}.
+All functions require a valid \code{catalog} code (see the
+\emph{Supported Catalogs} section) and return their results in a
+standardized format. An unknown code stops with an error that lists the
+supported catalogs.
+
+Each request waits up to 30 seconds and is attempted up to three times
+before it fails. If a catalog replies with something other than JSON, for
+example a block page for automated clients, the function stops with a
+clear message. Use \code{\link{set_user_agent}} to change the user agent
+sent with requests.
+
+Catalogs differ in what they publish. For example, \code{ihsn} has no
+collections, so \code{collections("ihsn")} warns that it returned 0
+collections and gives an empty result.
 }
 \section{Supported Catalogs}{
 
@@ -79,15 +95,16 @@ corresponding to the respective microdata repository. \strong{The list is sorted
 \item \code{"erf"}: \strong{Economic Research Forum} (\href{https://erfdataportal.com}{https://erfdataportal.com})
 \item \code{"fao"}: \strong{Food and Agriculture Organization} (\href{https://microdata.fao.org}{https://microdata.fao.org})
 \item \code{"ihsn"}: \strong{International Household Survey Network} (\href{https://catalog.ihsn.org}{https://catalog.ihsn.org})
-\item \code{"ilo"}: \strong{International Labour Organization} (\href{https://webapps.ilo.org/surveyLib}{https://webapps.ilo.org/surveyLib})
-\item \code{"india"}: \strong{Government of India} (\href{https://microdata.gov.in}{https://microdata.gov.in})
+\item \code{"kenya"}: \strong{Kenya National Bureau of Statistics} (\href{https://statistics.knbs.or.ke/nada/index.php}{https://statistics.knbs.or.ke/nada/index.php})
 \item \code{"unhcr"}: \strong{United Nations High Commissioner for Refugees} (\href{https://microdata.unhcr.org}{https://microdata.unhcr.org})
 \item \code{"wb"}: \strong{The World Bank} (\href{https://microdata.worldbank.org}{https://microdata.worldbank.org})
+\item \code{"who"}: \strong{World Health Organization Health Information Systems} (\href{https://apps.who.int/healthinfo/systems/surveydata/index.php/catalog}{https://apps.who.int/healthinfo/systems/surveydata/index.php/catalog})
+\item \code{"zambia"}: \strong{Zambia Statistics Agency} (\href{https://nada.zamstats.gov.zm}{https://nada.zamstats.gov.zm})
 }
 }
 
 \examples{
-\dontrun{
+\dontshow{if (interactive()) withAutoprint(\{ # examplesIf}
 # --- Examples for Supported Catalogs ---
 
 # 1. Data First (df): Get available access codes.
@@ -102,25 +119,30 @@ fao_collections <- collections("fao")
 # 4. International Household Survey Network (ihsn): Get supported country codes.
 ihsn_countries <- country_codes("ihsn")
 
-# 5. International Labour Organization (ilo): Get available access codes.
-ilo_codes <- access_codes("ilo")
+# 5. Kenya National Bureau of Statistics (kenya): Get available collections.
+kenya_collections <- collections("kenya")
 
-# 6. Government of India (india): Get latest data entries (limited to 10).
-india_latest <- latest_entries("india", limit = 10)
-
-# 7. United Nations High Commissioner for Refugees (unhcr): Get available collections.
+# 6. United Nations High Commissioner for Refugees (unhcr): Get available collections.
 unhcr_collections <- collections("unhcr")
 
-# 8. The World Bank (wb): Get supported country codes.
+# 7. The World Bank (wb): Get supported country codes.
 wb_countries <- country_codes("wb")
+
+# 8. World Health Organization HIS (who): Get available access codes.
+who_codes <- access_codes("who")
+
+# 9. Zambia Statistics Agency (zambia): Get latest entries (limit 10).
+zambia_latest <- latest_entries("zambia", limit = 10)
 
 # Example for the metadata function (requires a study ID)
 wb_study_metadata <- metadata("wb", id = 8098)
 str(wb_study_metadata)
-}
+\dontshow{\}) # examplesIf}
 }
 \seealso{
-The main search function: \code{\link{search_catalog}}
+The main search function: \code{\link{search_catalog}}; study files and
+variables: \code{\link{data_files}}; the user agent setting:
+\code{\link{set_user_agent}}
 }
 \author{
 Gutama Girja Urago
